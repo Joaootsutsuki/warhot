@@ -1,9 +1,6 @@
 package mundo;
 
 public enum Bloco {
-
-    // tipos de colisao
-
     CHAO("."),
     PAREDE("#");
 

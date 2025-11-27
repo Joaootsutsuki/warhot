@@ -1,5 +1,5 @@
-# O que falta nesse prototipo (se agnt seguir nessa ideia)
+# Como eu to compilando
 
-## sistema de combate, vida e etc
-## stat shower, mostrar vida do inimigo, a sua, etc
-## + fases, + inimigos, + classes (acho que pelo menos mago e guerreiro da pra tentar colocar)
+## cd warhot
+## javac -cp "lib\jline-terminal-3.25.0.jar;lib\jline-reader-3.25.0.jar;lib\jline-terminal-jna-3.25.0.jar;lib\jna-5.14.0.jar;." -d bin Main.java engine/*.java entidades/*.java mundo/*.java
+## java -cp "lib\jline-terminal-3.25.0.jar;lib\jline-reader-3.25.0.jar;lib\jline-terminal-jna-3.25.0.jar;lib\jna-5.14.0.jar;bin" Main (pra rodar)
