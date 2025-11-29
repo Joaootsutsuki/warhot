@@ -100,27 +100,34 @@ public class Jogo {
 
     private void loopDoJogo() {
         while (jogador.vivo()) {
-            Renderizador.limparTela();
+            try {
+                Renderizador.limparTela();
 
-            if (showingInventory) {
-                mostrarInventario();
-            } else if (showingChestLoot) {
-                mostrarBauLoot();
-            } else {
-                Monstro[] arrayMonstros = monstros.toArray(new Monstro[0]);
-                Renderizador.renderizar(mapa, jogador, log, chests, arrayMonstros);
-            }
+                if (showingInventory) {
+                    mostrarInventario();
+                } else if (showingChestLoot) {
+                    mostrarBauLoot();
+                } else {
+                    Monstro[] arrayMonstros = monstros.toArray(new Monstro[0]);
+                    Renderizador.renderizar(mapa, jogador, log, chests, arrayMonstros);
+                }
 
-            char tecla = Input.getKey();
+                char tecla = Input.getKey();
 
-            if (showingInventory) {
-                processarInventario(tecla);
-            } else if (showingChestLoot) {
-                processarBauLoot(tecla);
-            } else if (emCombate) {
-                processarCombate(tecla);
-            } else {
-                processarMovimento(tecla);
+                if (showingInventory) {
+                    processarInventario(tecla);
+                } else if (showingChestLoot) {
+                    processarBauLoot(tecla);
+                } else if (emCombate) {
+                    processarCombate(tecla);
+                } else {
+                    processarMovimento(tecla);
+                }
+            } catch (Exception e) {
+                System.err.println("ERROR: " + e.getMessage());
+                e.printStackTrace();
+                System.err.println("Press any key to continue...");
+                Input.getKey();
             }
         }
 
@@ -146,8 +153,16 @@ public class Jogo {
                 Weapon w = weapons.get(i);
                 String equipMark = (w == equipped) ? " [EQUIPPED]" : "";
                 String color = getRarityColor(w.rarity());
-                System.out.printf("  [%d] %s%-40s%s Lv.%-3d DMG: %d%s\n",
-                        i + 1, color, w.name(), "\u001B[0m", w.level(), w.damage(), equipMark);
+
+                // Calculate actual damage with player stats
+                int actualDamage = w.getDamageWithStats(
+                        jogador.stats().strength(),
+                        jogador.stats().dexterity(),
+                        jogador.stats().intelligence());
+
+                System.out.printf("  [%d] %s%-35s%s Lv.%-2d [%d→%d DMG] <%s> %.1fkg%s\n",
+                        i + 1, color, w.name(), "\u001B[0m", w.level(),
+                        w.baseDamage(), actualDamage, w.getTypeSymbol(), w.weight(), equipMark);
             }
         }
 
@@ -157,23 +172,28 @@ public class Jogo {
 
     private void mostrarBauLoot() {
         System.out.println("╔══════════════════════════════════════════════════════════════╗");
-        System.out.println("║                      CHEST CONTENTS                          ║");
+        String title = currentChest.corpseName();
+        int padding = (62 - title.length()) / 2;
+        System.out.printf("║%s%s%s║\n", " ".repeat(padding), title, " ".repeat(62 - padding - title.length()));
         System.out.println("╚══════════════════════════════════════════════════════════════╝");
         System.out.println();
-        System.out.println("  Press number to take weapon, [E] to close chest");
+        System.out.println("  Press number to take weapon, [E] to close");
         System.out.println();
 
         List<Weapon> weapons = currentChest.weapons();
         for (int i = 0; i < weapons.size(); i++) {
             Weapon w = weapons.get(i);
             String color = getRarityColor(w.rarity());
-            System.out.printf("  [%d] %s%-40s%s Lv.%-3d DMG: %d\n",
-                    i + 1, color, w.name(), "\u001B[0m", w.level(), w.damage());
+            System.out.printf("  [%d] %s%-35s%s Lv.%-2d [%d DMG] <%s> %.1fkg\n",
+                    i + 1, color, w.name(), "\u001B[0m", w.level(), w.baseDamage(), w.getTypeSymbol(), w.weight());
         }
 
         System.out.println();
         System.out.println("─".repeat(64));
-        System.out.println("Inventory: " + jogador.inventory().size() + "/20");
+        System.out.printf("Inventory: %d/20 | Weight: %.1f/%d\n",
+                jogador.inventory().size(),
+                jogador.inventory().getCurrentWeight(),
+                jogador.stats().maxCarryWeight());
     }
 
     private String getRarityColor(String rarity) {
@@ -211,14 +231,20 @@ public class Jogo {
         if (tecla >= '1' && tecla <= '9') {
             int index = tecla - '1';
             if (index < currentChest.weapons().size()) {
+                double maxWeight = jogador.stats().maxCarryWeight();
+                Weapon toTake = currentChest.weapons().get(index);
+
                 if (jogador.inventory().isFull()) {
                     log.adicionar("Inventory is full!");
+                } else if (jogador.inventory().getCurrentWeight() + toTake.weight() > maxWeight) {
+                    log.adicionar("Too heavy! Need more endurance");
                 } else {
                     Weapon taken = currentChest.weapons().remove(index);
-                    jogador.inventory().addWeapon(taken);
+                    jogador.inventory().addWeapon(taken, maxWeight);
                     log.adicionar("Took: " + taken.name());
 
                     if (currentChest.weapons().isEmpty()) {
+                        currentChest.open();
                         showingChestLoot = false;
                         currentChest = null;
                     }
@@ -263,12 +289,12 @@ public class Jogo {
             if (!chest.isOpened() && colidem(pos, chest.posicao())) {
                 currentChest = chest;
                 showingChestLoot = true;
-                log.adicionar("You opened a chest!");
+                log.adicionar("Looting " + chest.corpseName() + "...");
                 return;
             }
         }
 
-        log.adicionar("No chest nearby.");
+        log.adicionar("No corpse nearby.");
     }
 
     private void verificarEscada() {
@@ -296,15 +322,18 @@ public class Jogo {
         }
     }
 
-
-    // por ventura coloquei todas as classes de ataque aqui, mas como nós vamos fazer a classe de mago e guerreiro
-    // acho que dá pra mover tudo isso pra abstração do personagem e daí so dar override nas heranças, enfim, se quiser mexer nisso se divirta
-
     private void ataqueBasico() {
+        boolean evaded = false;
         int dano = jogador.atacar();
+
+        // Check if attack was critical
+        boolean wasCrit = Math.random() < jogador.stats().criticalChance();
+
         inimigoAtual.receberDano(dano);
-        log.adicionar(String.format("You attack %s for %d damage!",
-                inimigoAtual.nome(), dano));
+
+        String critText = wasCrit ? " CRITICAL!" : "";
+        log.adicionar(String.format("You attack %s for %d damage!%s",
+                inimigoAtual.nome(), dano, critText));
 
         if (verificarMorteInimigo())
             return;
@@ -356,10 +385,17 @@ public class Jogo {
     }
 
     private void turnoInimigo() {
+        int hpBefore = jogador.hpAtual();
         int dano = inimigoAtual.atacar();
         jogador.receberDano(dano);
-        log.adicionar(String.format("%s attacks you for %d damage!",
-                inimigoAtual.nome(), dano));
+
+        // check evade
+        if (jogador.hpAtual() == hpBefore) {
+            log.adicionar("You evaded the attack!");
+        } else {
+            log.adicionar(String.format("%s attacks you for %d damage!",
+                    inimigoAtual.nome(), dano));
+        }
 
         if (!jogador.vivo()) {
             log.adicionar("You were defeated...");
@@ -373,10 +409,11 @@ public class Jogo {
             log.adicionar(String.format("%s defeated! +%d XP",
                     inimigoAtual.nome(), xpGanho));
 
-            // spawn chest at monster's position
-            Chest newChest = new Chest(inimigoAtual.posicao(), nivelAtual);
+            // corpo com loot
+            Chest newChest = new Chest(inimigoAtual.posicao(), nivelAtual,
+                    jogador.stats().lootBonus(), inimigoAtual.nome());
             chests.add(newChest);
-            log.adicionar("A chest appeared!");
+            log.adicionar("Enemy left a corpse! Press [E] to loot");
 
             emCombate = false;
             inimigoAtual = null;

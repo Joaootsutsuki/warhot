@@ -13,9 +13,12 @@ public class Inventory {
         this.equippedWeapon = null;
     }
 
-    public boolean addWeapon(Weapon weapon) {
+    public boolean addWeapon(Weapon weapon, double maxWeight) {
         if (weapons.size() >= MAX_SIZE) {
             return false;
+        }
+        if (getCurrentWeight() + weapon.weight() > maxWeight) {
+            return false; // Too heavy
         }
         weapons.add(weapon);
         return true;
@@ -34,6 +37,14 @@ public class Inventory {
                 equippedWeapon = null;
             }
         }
+    }
+
+    public double getCurrentWeight() {
+        double total = 0;
+        for (Weapon w : weapons) {
+            total += w.weight();
+        }
+        return total;
     }
 
     public List<Weapon> getWeapons() {

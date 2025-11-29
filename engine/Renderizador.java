@@ -12,7 +12,7 @@ public class Renderizador {
             Entidade... outrasEntidades) {
         String[][] tela = mapa.comoArrayString();
 
-        // render chests first
+        // Render chests first
         for (Chest chest : chests) {
             if (!chest.isOpened()) {
                 String[][] s = chest.sprite();
@@ -31,7 +31,7 @@ public class Renderizador {
             }
         }
 
-        // render entities
+        // Then render entities
         Entidade[] todasEntidades = new Entidade[outrasEntidades.length + 1];
         todasEntidades[0] = jogador;
         System.arraycopy(outrasEntidades, 0, todasEntidades, 1, outrasEntidades.length);
@@ -91,7 +91,7 @@ public class Renderizador {
         String RESET = "\u001B[0m";
 
         sb.append(String.format("%s%s%s\n", CYAN, jogador.nome(), RESET));
-        sb.append(String.format("Nivel: %d\n", jogador.nivel()));
+        sb.append(String.format("Level: %d\n", jogador.nivel()));
         sb.append("─".repeat(25) + "\n");
 
         // Barra de HP
@@ -103,19 +103,33 @@ public class Renderizador {
         sb.append(String.format("MP: %s %d/%d\n", manaBar, jogador.manaAtual(), jogador.manaMax()));
 
         sb.append("─".repeat(25) + "\n");
-        sb.append(String.format("ATK: %d   DEF: %d\n", jogador.ataque(), jogador.defesa()));
-        sb.append(String.format("XP:  %d\n", jogador.xp()));
+
+        // Stats
+        sb.append(String.format("%sSTATS:%s\n", YELLOW, RESET));
+        sb.append(String.format("VIT:%d END:%d STR:%d\n",
+                jogador.stats().vitality(), jogador.stats().endurance(), jogador.stats().strength()));
+        sb.append(String.format("DEX:%d INT:%d LCK:%d\n",
+                jogador.stats().dexterity(), jogador.stats().intelligence(), jogador.stats().luck()));
+
+        sb.append("─".repeat(25) + "\n");
+
+        // Weight
+        double currentWeight = jogador.inventory().getCurrentWeight();
+        int maxWeight = jogador.stats().maxCarryWeight();
+        sb.append(String.format("Weight: %.1f/%d\n", currentWeight, maxWeight));
+
+        sb.append(String.format("XP: %d\n", jogador.xp()));
 
         // Show equipped weapon
         if (jogador.inventory().getEquippedWeapon() != null) {
             sb.append("\n");
             sb.append(String.format("%sEquipped:%s\n", YELLOW, RESET));
-            sb.append(String.format("%s\n", jogador.inventory().getEquippedWeapon().toString()));
+            sb.append(String.format("%s\n", jogador.inventory().getEquippedWeapon().name()));
         }
 
         sb.append("\n");
 
-        sb.append(String.format("%s=== INIMIGOS ===%s\n", YELLOW, RESET));
+        sb.append(String.format("%s=== ENEMIES ===%s\n", YELLOW, RESET));
         boolean temInimigo = false;
         for (Entidade e : inimigos) {
             if (e.vivo()) {
@@ -127,7 +141,7 @@ public class Renderizador {
             }
         }
         if (!temInimigo) {
-            sb.append("Nenhum inimigo vivo\n");
+            sb.append("No living enemies\n");
         }
 
         return sb.toString();
