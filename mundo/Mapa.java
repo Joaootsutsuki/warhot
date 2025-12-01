@@ -4,43 +4,142 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-// Algoritmo pra gerar os mapas: Usei uma Room-based generation, não ficou muito orgânico, se precisar alterar pode alterar
-// só tomar cuidado com os gaps do personagem pra ele não ficar preso, e também limitar os spawns dos mobs pra eles não spawnarem em cima do player.
-
 public class Mapa {
     private Bloco[][] grade;
     private Random r = new Random();
     private List<Sala> salas;
-    private Posicao escadaPos;
+    private Posicao northDoorPos;
+    private Posicao southDoorPos;
+    private Posicao eastDoorPos;
+    private Posicao westDoorPos;
 
     public Mapa(int largura, int altura) {
         grade = new Bloco[altura][largura];
         salas = new ArrayList<>();
 
-        // fill with walls first
         for (int y = 0; y < altura; y++)
             for (int x = 0; x < largura; x++)
                 grade[y][x] = Bloco.PAREDE;
 
+        // Note: placeDoors will be called BEFORE gerarSalas in setupRoom()
+        // This is handled in Jogo.java
+    }
+
+    public Mapa(int largura, int altura, boolean north, boolean south, boolean east, boolean west) {
+        grade = new Bloco[altura][largura];
+        salas = new ArrayList<>();
+
+        for (int y = 0; y < altura; y++)
+            for (int x = 0; x < largura; x++)
+                grade[y][x] = Bloco.PAREDE;
+
+        // generate rooms FIRST
         gerarSalas();
-        colocarEscada();
+
+        // THEN place doors and force carve paths to them
+        placeDoors(north, south, east, west);
+    }
+
+    public void placeDoors(boolean north, boolean south, boolean east, boolean west) {
+        int centerX = grade[0].length / 2;
+        int centerY = grade.length / 2;
+
+        if (north) {
+            northDoorPos = new Posicao(centerX, 0);
+            // ´place door
+            for (int i = 0; i <= 1; i++) {
+                grade[0][centerX + i] = Bloco.DOOR_NORTH;
+            }
+            // force carve corridor from door to center
+            for (int y = 1; y <= centerY; y++) {
+                grade[y][centerX] = Bloco.CHAO;
+                grade[y][centerX + 1] = Bloco.CHAO;
+            }
+        }
+
+        if (south) {
+            southDoorPos = new Posicao(centerX, grade.length - 1);
+            // place door
+            for (int i = 0; i <= 1; i++) {
+                grade[grade.length - 1][centerX + i] = Bloco.DOOR_SOUTH;
+            }
+            // force carve corridor from door to center
+            for (int y = grade.length - 2; y >= centerY; y--) {
+                grade[y][centerX] = Bloco.CHAO;
+                grade[y][centerX + 1] = Bloco.CHAO;
+            }
+        }
+
+        if (east) {
+            eastDoorPos = new Posicao(grade[0].length - 1, centerY);
+            // place door
+            for (int i = 0; i <= 1; i++) {
+                grade[centerY + i][grade[0].length - 1] = Bloco.DOOR_EAST;
+            }
+            // force carve corridor from door to center
+            for (int x = grade[0].length - 2; x >= centerX; x--) {
+                grade[centerY][x] = Bloco.CHAO;
+                grade[centerY + 1][x] = Bloco.CHAO;
+            }
+        }
+
+        if (west) {
+            westDoorPos = new Posicao(0, centerY);
+            // place door
+            for (int i = 0; i <= 1; i++) {
+                grade[centerY + i][0] = Bloco.DOOR_WEST;
+            }
+            // force carve corridor from door to center
+            for (int x = 1; x <= centerX; x++) {
+                grade[centerY][x] = Bloco.CHAO;
+                grade[centerY + 1][x] = Bloco.CHAO;
+            }
+        }
     }
 
     private void gerarSalas() {
         int tentativas = 0;
         int maxTentativas = 50;
         int salasCriadas = 0;
-        int salasDesejadas = 8 + r.nextInt(5); // 8-12 rooms
+        int salasDesejadas = 6 + r.nextInt(4);
+
+        // get door positions to avoid them
+        int centerX = grade[0].length / 2;
+        int centerY = grade.length / 2;
 
         while (salasCriadas < salasDesejadas && tentativas < maxTentativas) {
-            int largura = 6 + r.nextInt(8); // 6-13
-            int altura = 5 + r.nextInt(6); // 5-10
+            int largura = 6 + r.nextInt(8);
+            int altura = 5 + r.nextInt(6);
             int x = 1 + r.nextInt(grade[0].length - largura - 2);
             int y = 1 + r.nextInt(grade.length - altura - 2);
 
             Sala novaSala = new Sala(x, y, largura, altura);
 
-            // check if room overlaps with existing rooms
+            // check if room overlaps with door areas
+            boolean bloqueiaPorta = false;
+
+            // check north door area
+            if (novaSala.y() <= 5 && novaSala.x() <= centerX + 3 && novaSala.x() + novaSala.largura() >= centerX - 2) {
+                bloqueiaPorta = true;
+            }
+
+            // check south door area
+            if (novaSala.y() + novaSala.altura() >= grade.length - 5 &&
+                    novaSala.x() <= centerX + 3 && novaSala.x() + novaSala.largura() >= centerX - 2) {
+                bloqueiaPorta = true;
+            }
+
+            // check east door area
+            if (novaSala.x() + novaSala.largura() >= grade[0].length - 5 &&
+                    novaSala.y() <= centerY + 3 && novaSala.y() + novaSala.altura() >= centerY - 2) {
+                bloqueiaPorta = true;
+            }
+
+            // check west door area
+            if (novaSala.x() <= 5 && novaSala.y() <= centerY + 3 && novaSala.y() + novaSala.altura() >= centerY - 2) {
+                bloqueiaPorta = true;
+            }
+
             boolean sobrepoe = false;
             for (Sala sala : salas) {
                 if (novaSala.intersecta(sala)) {
@@ -49,18 +148,15 @@ public class Mapa {
                 }
             }
 
-            if (!sobrepoe) {
+            if (!sobrepoe && !bloqueiaPorta) {
                 criarSala(novaSala);
 
-                // connect to previous room
                 if (!salas.isEmpty()) {
                     Sala salaAnterior = salas.get(salas.size() - 1);
 
-                    // randomly choose connection style
                     if (r.nextBoolean()) {
                         conectarSalasLinear(salaAnterior, novaSala);
                     } else {
-                        // sometimes connect to a random earlier room
                         Sala salaAleatoria = salas.get(r.nextInt(salas.size()));
                         conectarSalasLinear(salaAleatoria, novaSala);
                     }
@@ -75,11 +171,14 @@ public class Mapa {
     }
 
     private void criarSala(Sala sala) {
-        // create room with wall borders
         for (int y = sala.y(); y < sala.y() + sala.altura(); y++) {
             for (int x = sala.x(); x < sala.x() + sala.largura(); x++) {
                 if (dentroDosLimites(x, y)) {
-                    // check if it's a border tile
+                    // don't overwrite doors or existing floor
+                    if (grade[y][x].isDoor() || grade[y][x] == Bloco.CHAO) {
+                        continue;
+                    }
+
                     boolean isBorder = (x == sala.x() || x == sala.x() + sala.largura() - 1 ||
                             y == sala.y() || y == sala.y() + sala.altura() - 1);
 
@@ -99,18 +198,14 @@ public class Mapa {
         int x2 = sala2.centroX();
         int y2 = sala2.centroY();
 
-        // randomly choose L-shape direction
         if (r.nextBoolean()) {
-            // horizontal then vertical - 2 tiles wide
             criarCorredorHorizontal(x1, x2, y1);
             criarCorredorVertical(y1, y2, x2);
         } else {
-            // vertical then horizontal - 2 tiles wide
             criarCorredorVertical(y1, y2, x1);
             criarCorredorHorizontal(x1, x2, y2);
         }
 
-        // break through room walls where corridors connect
         breakWallsAtConnection(sala1);
         breakWallsAtConnection(sala2);
     }
@@ -144,12 +239,11 @@ public class Mapa {
         int inicio = Math.min(x1, x2);
         int fim = Math.max(x1, x2);
 
-        // gap min de 2x2
         for (int x = inicio; x <= fim; x++) {
-            if (dentroDosLimites(x, y)) {
+            if (dentroDosLimites(x, y) && !grade[y][x].isDoor()) {
                 grade[y][x] = Bloco.CHAO;
             }
-            if (dentroDosLimites(x, y + 1)) {
+            if (dentroDosLimites(x, y + 1) && !grade[y + 1][x].isDoor()) {
                 grade[y + 1][x] = Bloco.CHAO;
             }
         }
@@ -159,33 +253,40 @@ public class Mapa {
         int inicio = Math.min(y1, y2);
         int fim = Math.max(y1, y2);
 
-        // gap min de 2x2
         for (int y = inicio; y <= fim; y++) {
-            if (dentroDosLimites(x, y)) {
+            if (dentroDosLimites(x, y) && !grade[y][x].isDoor()) {
                 grade[y][x] = Bloco.CHAO;
             }
-            if (dentroDosLimites(x + 1, y)) {
+            if (dentroDosLimites(x + 1, y) && !grade[y][x + 1].isDoor()) {
                 grade[y][x + 1] = Bloco.CHAO;
             }
         }
     }
 
-    private void colocarEscada() {
-        // gerar escadas
-        if (!salas.isEmpty()) {
-            Sala ultimaSala = salas.get(salas.size() - 1);
-            int x = ultimaSala.centroX();
-            int y = ultimaSala.centroY();
+    public void placeStairs(boolean hasUp, boolean hasDown) {
+        if (salas.isEmpty())
+            return;
 
-            // pelo menos 2x2
-            escadaPos = new Posicao(x, y);
-            for (int dy = 0; dy < 2; dy++) {
-                for (int dx = 0; dx < 2; dx++) {
-                    if (dentroDosLimites(x + dx, y + dy)) {
-                        grade[y + dy][x + dx] = Bloco.ESCADA;
-                    }
-                }
-            }
+        // place stairs in center of last room
+        Sala lastRoom = salas.get(salas.size() - 1);
+        int centerX = lastRoom.centroX();
+        int centerY = lastRoom.centroY();
+
+        if (hasUp) {
+            // place stairs up at top-left of center
+            grade[centerY][centerX] = Bloco.STAIRS_UP;
+            grade[centerY][centerX + 1] = Bloco.STAIRS_UP;
+            grade[centerY + 1][centerX] = Bloco.CHAO;
+            grade[centerY + 1][centerX + 1] = Bloco.CHAO;
+        }
+
+        if (hasDown) {
+            // place stairs down at bottom-right of center
+            int offsetX = hasUp ? 4 : 0;
+            grade[centerY][centerX + offsetX] = Bloco.STAIRS_DOWN;
+            grade[centerY][centerX + offsetX + 1] = Bloco.STAIRS_DOWN;
+            grade[centerY + 1][centerX + offsetX] = Bloco.CHAO;
+            grade[centerY + 1][centerX + offsetX + 1] = Bloco.CHAO;
         }
     }
 
@@ -195,21 +296,37 @@ public class Mapa {
 
     public boolean podeAndar(int x, int y) {
         return dentroDosLimites(x, y) &&
-                (grade[y][x] == Bloco.CHAO || grade[y][x] == Bloco.ESCADA);
+                (grade[y][x] == Bloco.CHAO || grade[y][x].isDoor() || grade[y][x].isStairs());
     }
 
-    public boolean isEscada(int x, int y) {
-        return dentroDosLimites(x, y) && grade[y][x] == Bloco.ESCADA;
+    public boolean isDoor(int x, int y) {
+        return dentroDosLimites(x, y) && grade[y][x].isDoor();
+    }
+
+    public boolean isStairs(int x, int y) {
+        return dentroDosLimites(x, y) && grade[y][x].isStairs();
+    }
+
+    public Bloco getDoorType(int x, int y) {
+        if (isDoor(x, y)) {
+            return grade[y][x];
+        }
+        return null;
+    }
+
+    public Bloco getStairsType(int x, int y) {
+        if (isStairs(x, y)) {
+            return grade[y][x];
+        }
+        return null;
     }
 
     public Posicao posicaoAleatoria() {
-        // spawn in the first room (not where stairs are)
         if (salas.isEmpty()) {
             return new Posicao(grade[0].length / 2, grade.length / 2);
         }
 
         Sala primeiraLala = salas.get(0);
-        // gap de 2 tiles min
         int margem = 3;
         int larguraUtil = Math.max(1, primeiraLala.largura() - 2 * margem);
         int alturaUtil = Math.max(1, primeiraLala.altura() - 2 * margem);
@@ -221,7 +338,6 @@ public class Mapa {
             return new Posicao(x, y);
         }
 
-        // fallback: try room center
         return new Posicao(primeiraLala.centroX(), primeiraLala.centroY());
     }
 
@@ -230,7 +346,6 @@ public class Mapa {
         int maxTentativas = 100;
 
         while (tentativas < maxTentativas) {
-            // escolhe uma sala random
             Sala salaAleatoria = salas.get(1 + r.nextInt(Math.max(1, salas.size() - 1)));
 
             int margem = 3;
@@ -240,7 +355,6 @@ public class Mapa {
             int x = salaAleatoria.x() + margem + r.nextInt(larguraUtil);
             int y = salaAleatoria.y() + margem + r.nextInt(alturaUtil);
 
-            // check se a posição é válida
             if (podeAndar(x, y) && podeAndar(x + 1, y) && podeAndar(x, y + 1) && podeAndar(x + 1, y + 1)) {
                 double distancia = Math.sqrt(Math.pow(x - jogadorPos.x(), 2) + Math.pow(y - jogadorPos.y(), 2));
                 if (distancia >= distanciaMinima) {
@@ -251,7 +365,6 @@ public class Mapa {
             tentativas++;
         }
 
-        // fallback: use last room center
         if (!salas.isEmpty()) {
             Sala ultimaSala = salas.get(salas.size() - 1);
             return new Posicao(ultimaSala.centroX(), ultimaSala.centroY());
