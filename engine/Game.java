@@ -41,7 +41,7 @@ public class Game {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Input.cleanup();
-            Renderizador.limparTela();
+            Render.clearScreen();
         }));
 
         log.adicionar("You enter the dungeon...");
@@ -75,7 +75,7 @@ public class Game {
         String VERMELHO = "\u001B[31m";
 
         for (int i = 0; i < numMonstros; i++) {
-            Posicao pos = room.mapa().posicaoAleatoria();
+            Position pos = room.mapa().posicaoAleatoria();
 
             boolean isBoss = (room.type() == Room.RoomType.BOSS);
             int hpMultiplier = isBoss ? 3 : 1;
@@ -91,14 +91,14 @@ public class Game {
         log.adicionar("Spawned " + numMonstros + " enemies!");
     }
 
-    private Posicao encontrarPosicaoValida(Mapa mapa, List<Posicao> posicoesUsadas, int distanciaMinima) {
+    private Position encontrarPosicaoValida(Mapa mapa, List<Position> posicoesUsadas, int distanciaMinima) {
         int tentativas = 0;
 
         while (tentativas < 100) {
-            Posicao novaPosicao = mapa.posicaoAleatoriaLongeDoJogador(jogador.posicao(), distanciaMinima);
+            Position novaPosicao = mapa.posicaoAleatoriaLongeDoJogador(jogador.position(), distanciaMinima);
 
             boolean muitoPerto = false;
-            for (Posicao usada : posicoesUsadas) {
+            for (Position usada : posicoesUsadas) {
                 double dist = Math.sqrt(Math.pow(novaPosicao.x() - usada.x(), 2) +
                         Math.pow(novaPosicao.y() - usada.y(), 2));
                 if (dist < distanciaMinima) {
@@ -114,13 +114,13 @@ public class Game {
             tentativas++;
         }
 
-        return mapa.posicaoAleatoriaLongeDoJogador(jogador.posicao(), 5);
+        return mapa.posicaoAleatoriaLongeDoJogador(jogador.position(), 5);
     }
 
     private void loopDoJogo() {
         while (jogador.vivo()) {
             try {
-                Renderizador.limparTela();
+                Render.clearScreen();
 
                 if (showingInventory) {
                     mostrarInventario();
@@ -129,7 +129,7 @@ public class Game {
                 } else {
                     Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
                     Monstro[] arrayMonstros = currentRoom.monstros().toArray(new Monstro[0]);
-                    Renderizador.renderizar(currentRoom.mapa(), jogador, log,
+                    Render.render(currentRoom.mapa(), jogador, log,
                             currentRoom.chests(), arrayMonstros);
                 }
 
@@ -277,8 +277,8 @@ public class Game {
         Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
         Mapa mapa = currentRoom.mapa();
 
-        int oldX = jogador.posicao().x();
-        int oldY = jogador.posicao().y();
+        int oldX = jogador.position().x();
+        int oldY = jogador.position().y();
 
         switch (tecla) {
             case 'w' -> jogador.mover(0, -1, mapa);
@@ -304,7 +304,7 @@ public class Game {
             }
         }
 
-        if (jogador.posicao().x() != oldX || jogador.posicao().y() != oldY) {
+        if (jogador.position().x() != oldX || jogador.position().y() != oldY) {
             verificarEscada();
             verificarTransicaoSala();
             verificarColisao(currentRoom);
@@ -313,7 +313,7 @@ public class Game {
     }
 
     private void verificarEscada() {
-        Posicao pos = jogador.posicao();
+        Position pos = jogador.position();
         Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
         Mapa mapa = currentRoom.mapa();
 
@@ -339,9 +339,9 @@ public class Game {
                         }
 
                         // Move player to stairs up position
-                        Posicao newPos = newRoom.mapa().posicaoAleatoria();
-                        jogador.mover(newPos.x() - jogador.posicao().x(),
-                                newPos.y() - jogador.posicao().y(), newRoom.mapa());
+                        Position newPos = newRoom.mapa().posicaoAleatoria();
+                        jogador.mover(newPos.x() - jogador.position().x(),
+                                newPos.y() - jogador.position().y(), newRoom.mapa());
 
                     } else if (stairsType == Bloco.STAIRS_UP) {
                         dungeon.ascendFloor();
@@ -350,9 +350,9 @@ public class Game {
 
                         // Return to previous floor
                         Room oldRoom = dungeon.getCurrentLevel().getCurrentRoom();
-                        Posicao returnPos = oldRoom.mapa().posicaoAleatoria();
-                        jogador.mover(returnPos.x() - jogador.posicao().x(),
-                                returnPos.y() - jogador.posicao().y(), oldRoom.mapa());
+                        Position returnPos = oldRoom.mapa().posicaoAleatoria();
+                        jogador.mover(returnPos.x() - jogador.position().x(),
+                                returnPos.y() - jogador.position().y(), oldRoom.mapa());
                     }
 
                     return;
@@ -362,7 +362,7 @@ public class Game {
     }
 
     private void verificarTransicaoSala() {
-        Posicao pos = jogador.posicao();
+        Position pos = jogador.position();
         Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
         Mapa mapa = currentRoom.mapa();
 
@@ -409,7 +409,7 @@ public class Game {
 
         // Place player at opposite door - ensure it's on floor
         Mapa newMapa = newRoom.mapa();
-        Posicao newPos;
+        Position newPos;
 
         switch (doorType) {
             case DOOR_NORTH -> {
@@ -430,13 +430,13 @@ public class Game {
         }
         ;
 
-        jogador.mover(newPos.x() - jogador.posicao().x(),
-                newPos.y() - jogador.posicao().y(), newMapa);
+        jogador.mover(newPos.x() - jogador.position().x(),
+                newPos.y() - jogador.position().y(), newMapa);
 
         log.adicionar("Entered " + getRoomDescription(newRoom));
     }
 
-    private Posicao findSafeSpawnNear(Mapa mapa, int targetX, int targetY) {
+    private Position findSafeSpawnNear(Mapa mapa, int targetX, int targetY) {
         // try to find a walkable 2x2 area near the target position
         for (int radius = 0; radius < 15; radius++) {
             for (int dx = -radius; dx <= radius; dx++) {
@@ -447,7 +447,7 @@ public class Game {
                     // check if this position and the 2x2 area is walkable
                     if (mapa.podeAndar(x, y) && mapa.podeAndar(x + 1, y) &&
                             mapa.podeAndar(x, y + 1) && mapa.podeAndar(x + 1, y + 1)) {
-                        return new Posicao(x, y);
+                        return new Position(x, y);
                     }
                 }
             }
@@ -467,7 +467,7 @@ public class Game {
     }
 
     private void mostrarMiniMapa() {
-        Renderizador.limparTela();
+        Render.clearScreen();
         System.out.println("╔════════════════════════════════╗");
         System.out.println("║   MINIMAP - Floor " + dungeon.getCurrentFloorNumber() + "          ║");
         System.out.println("╚════════════════════════════════╝");
@@ -511,10 +511,10 @@ public class Game {
     }
 
     private void verificarBau(Room room) {
-        Posicao pos = jogador.posicao();
+        Position pos = jogador.position();
 
         for (Chest chest : room.chests()) {
-            if (!chest.isOpened() && colidem(pos, chest.posicao())) {
+            if (!chest.isOpened() && colidem(pos, chest.position())) {
                 currentChest = chest;
                 showingChestLoot = true;
                 log.adicionar("Looting " + chest.corpseName() + "...");
@@ -619,7 +619,7 @@ public class Game {
             log.adicionar(String.format("%s defeated! +%d XP",
                     inimigoAtual.nome(), xpGanho));
 
-            Chest newChest = new Chest(inimigoAtual.posicao(), dungeon.getCurrentFloorNumber(),
+            Chest newChest = new Chest(inimigoAtual.position(), dungeon.getCurrentFloorNumber(),
                     jogador.stats().lootBonus(), inimigoAtual.nome());
             currentRoom.chests().add(newChest);
             log.adicionar("Enemy left a corpse! Press [E] to loot");
@@ -632,10 +632,10 @@ public class Game {
     }
 
     private void verificarColisao(Room room) {
-        Posicao pj = jogador.posicao();
+        Position pj = jogador.position();
 
         for (Monstro monstro : room.monstros()) {
-            if (monstro.vivo() && colidem(pj, monstro.posicao())) {
+            if (monstro.vivo() && colidem(pj, monstro.position())) {
                 emCombate = true;
                 inimigoAtual = monstro;
                 log.adicionar("You encountered a " + monstro.nome() + "!");
@@ -647,12 +647,12 @@ public class Game {
         }
     }
 
-    private boolean colidem(Posicao p1, Posicao p2) {
+    private boolean colidem(Position p1, Position p2) {
         return Math.abs(p1.x() - p2.x()) < 2 && Math.abs(p1.y() - p2.y()) < 2;
     }
 
     private void gameOver() {
-        Renderizador.limparTela();
+        Render.clearScreen();
         System.out.println();
         System.out.println("╔════════════════════════════════╗");
         System.out.println("║        YOU DIED!               ║");

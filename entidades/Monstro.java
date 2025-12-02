@@ -1,15 +1,15 @@
 package entidades;
 
 import mundo.Mapa;
-import mundo.Posicao;
+import mundo.Position;
 import java.util.Random;
 
 public class Monstro extends Entidade {
 
     private Random rand = new Random();
 
-    public Monstro(String nome, String simbolo, String cor, Posicao posicao, int hp, int ataque, int defesa) {
-        super(nome, gerarSprite(simbolo, cor), posicao, hp, ataque, defesa);
+    public Monstro(String nome, String simbolo, String cor, Position position, int hp, int ataque, int defesa) {
+        super(nome, gerarSprite(simbolo, cor), position, hp, ataque, defesa);
     }
 
     private static String[][] gerarSprite(String simbolo, String cor) {

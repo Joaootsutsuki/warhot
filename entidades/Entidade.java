@@ -1,12 +1,12 @@
 package entidades;
 
 import mundo.Mapa;
-import mundo.Posicao;
+import mundo.Position;
 
 public abstract class Entidade {
     protected String nome;
     protected String[][] sprite;
-    protected Posicao posicao;
+    protected Position position;
 
     // Combat stats
     protected int hpMax;
@@ -15,10 +15,10 @@ public abstract class Entidade {
     protected int defesa;
     protected boolean vivo;
 
-    public Entidade(String nome, String[][] sprite, Posicao posicao, int hp, int ataque, int defesa) {
+    public Entidade(String nome, String[][] sprite, Position position, int hp, int ataque, int defesa) {
         this.nome = nome;
         this.sprite = sprite;
-        this.posicao = posicao;
+        this.position = position;
         this.hpMax = hp;
         this.hpAtual = hp;
         this.ataque = ataque;
@@ -27,11 +27,11 @@ public abstract class Entidade {
     }
 
     public void mover(int dx, int dy, Mapa mapa) {
-        int nx = posicao.x() + dx;
-        int ny = posicao.y() + dy;
+        int nx = position.x() + dx;
+        int ny = position.y() + dy;
 
         if (mapa.podeAndar(nx, ny))
-            posicao = new Posicao(nx, ny);
+            position = new Position(nx, ny);
     }
 
     public void receberDano(int dano) {
@@ -48,8 +48,8 @@ public abstract class Entidade {
     }
 
     // Getters
-    public Posicao posicao() {
-        return posicao;
+    public Position position() {
+        return position;
     }
 
     public String[][] sprite() {

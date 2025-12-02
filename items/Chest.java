@@ -1,19 +1,19 @@
 package items;
 
-import mundo.Posicao;
+import mundo.Position;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class Chest {
-    private Posicao posicao;
+    private Position position;
     private List<Weapon> weapons;
     private boolean opened;
     private String[][] sprite;
     private String corpseName;
 
-    public Chest(Posicao posicao, int floorLevel, int luckBonus, String monsterName) {
-        this.posicao = posicao;
+    public Chest(Position position, int floorLevel, int luckBonus, String monsterName) {
+        this.position = position;
         this.opened = false;
         this.weapons = new ArrayList<>();
         this.corpseName = monsterName + "'s Corpse";
@@ -35,8 +35,8 @@ public class Chest {
         };
     }
 
-    public Posicao posicao() {
-        return posicao;
+    public Position position() {
+        return position;
     }
 
     public List<Weapon> weapons() {

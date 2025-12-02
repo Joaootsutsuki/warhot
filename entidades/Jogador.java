@@ -1,6 +1,6 @@
 package entidades;
 
-import mundo.Posicao;
+import mundo.Position;
 import items.Inventory;
 import items.Weapon;
 
@@ -12,8 +12,8 @@ public class Jogador extends Entidade {
     private Inventory inventory;
     private Stats stats;
 
-    public Jogador(String nome, Posicao posicao) {
-        super(nome, new String[][] {{"@"}}, posicao, 35, 5, 2); // base HP will be overridden by stats
+    public Jogador(String nome, Position position) {
+        super(nome, new String[][] {{"@"}}, position, 35, 5, 2); // base HP will be overridden by stats
 
         // starting stats (like Dark Souls deprived class)
         this.stats = new Stats(10, 10, 10, 10, 10, 10);

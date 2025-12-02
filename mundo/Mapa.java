@@ -8,10 +8,10 @@ public class Mapa {
     private Bloco[][] grade;
     private Random r = new Random();
     private List<Sala> salas;
-    private Posicao northDoorPos;
-    private Posicao southDoorPos;
-    private Posicao eastDoorPos;
-    private Posicao westDoorPos;
+    private Position northDoorPos;
+    private Position southDoorPos;
+    private Position eastDoorPos;
+    private Position westDoorPos;
 
     public Mapa(int largura, int altura) {
         grade = new Bloco[altura][largura];
@@ -45,7 +45,7 @@ public class Mapa {
         int centerY = grade.length / 2;
 
         if (north) {
-            northDoorPos = new Posicao(centerX, 0);
+            northDoorPos = new Position(centerX, 0);
             // ´place door
             for (int i = 0; i <= 1; i++) {
                 grade[0][centerX + i] = Bloco.DOOR_NORTH;
@@ -58,7 +58,7 @@ public class Mapa {
         }
 
         if (south) {
-            southDoorPos = new Posicao(centerX, grade.length - 1);
+            southDoorPos = new Position(centerX, grade.length - 1);
             // place door
             for (int i = 0; i <= 1; i++) {
                 grade[grade.length - 1][centerX + i] = Bloco.DOOR_SOUTH;
@@ -71,7 +71,7 @@ public class Mapa {
         }
 
         if (east) {
-            eastDoorPos = new Posicao(grade[0].length - 1, centerY);
+            eastDoorPos = new Position(grade[0].length - 1, centerY);
             // place door
             for (int i = 0; i <= 1; i++) {
                 grade[centerY + i][grade[0].length - 1] = Bloco.DOOR_EAST;
@@ -84,7 +84,7 @@ public class Mapa {
         }
 
         if (west) {
-            westDoorPos = new Posicao(0, centerY);
+            westDoorPos = new Position(0, centerY);
             // place door
             for (int i = 0; i <= 1; i++) {
                 grade[centerY + i][0] = Bloco.DOOR_WEST;
@@ -321,9 +321,9 @@ public class Mapa {
         return null;
     }
 
-    public Posicao posicaoAleatoria() {
+    public Position posicaoAleatoria() {
         if (salas.isEmpty()) {
-            return new Posicao(grade[0].length / 2, grade.length / 2);
+            return new Position(grade[0].length / 2, grade.length / 2);
         }
 
         Sala primeiraLala = salas.get(0);
@@ -335,13 +335,13 @@ public class Mapa {
         int y = primeiraLala.y() + margem + r.nextInt(alturaUtil);
 
         if (podeAndar(x, y) && podeAndar(x + 1, y) && podeAndar(x, y + 1) && podeAndar(x + 1, y + 1)) {
-            return new Posicao(x, y);
+            return new Position(x, y);
         }
 
-        return new Posicao(primeiraLala.centroX(), primeiraLala.centroY());
+        return new Position(primeiraLala.centroX(), primeiraLala.centroY());
     }
 
-    public Posicao posicaoAleatoriaLongeDoJogador(Posicao jogadorPos, int distanciaMinima) {
+    public Position posicaoAleatoriaLongeDoJogador(Position jogadorPos, int distanciaMinima) {
         int tentativas = 0;
         int maxTentativas = 100;
 
@@ -358,7 +358,7 @@ public class Mapa {
             if (podeAndar(x, y) && podeAndar(x + 1, y) && podeAndar(x, y + 1) && podeAndar(x + 1, y + 1)) {
                 double distancia = Math.sqrt(Math.pow(x - jogadorPos.x(), 2) + Math.pow(y - jogadorPos.y(), 2));
                 if (distancia >= distanciaMinima) {
-                    return new Posicao(x, y);
+                    return new Position(x, y);
                 }
             }
 
@@ -367,10 +367,10 @@ public class Mapa {
 
         if (!salas.isEmpty()) {
             Sala ultimaSala = salas.get(salas.size() - 1);
-            return new Posicao(ultimaSala.centroX(), ultimaSala.centroY());
+            return new Position(ultimaSala.centroX(), ultimaSala.centroY());
         }
 
-        return new Posicao(grade[0].length / 2, grade.length / 2);
+        return new Position(grade[0].length / 2, grade.length / 2);
     }
 
     public String[][] comoArrayString() {
