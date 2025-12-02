@@ -176,15 +176,11 @@ public class Render {
         }
     }
 
-    private static void renderLog(MessageLog log){
-        List<String> msgs = log.getMessages();
-        if (msgs.isEmpty()) {
-            frameBuffer.append("Bem-vindo ao Warhot! Use WASD para mover, Q para sair.");
-        } else {
-            for (String msg : msgs) {
-                frameBuffer.append(msg);
-            }
+    private static void renderLog(MessageLog log) {
+        for (String msg : log.getMessages()) {
+            frameBuffer.append(msg).append("\n"); // ← adiciona \n no final de cada linha
         }
+        frameBuffer.append("\n"); // linha em branco extra pra ficar bonito
     }
 
     private static boolean isValidPosition(int x, int y, String[][] screen) {

@@ -40,6 +40,21 @@ public class Mapa {
         placeDoors(north, south, east, west);
     }
 
+    public Bloco getTile(int y, int x) {
+        if (y < 0 || y >= grade.length || x < 0 || x >= grade[0].length) {
+            return Bloco.PAREDE;
+        }
+        return grade[y][x];
+    }
+    
+    public int getHeight() {
+        return grade.length;
+    }
+
+    public int getWidth() {
+        return grade[0].length;
+    }
+
     public void placeDoors(boolean north, boolean south, boolean east, boolean west) {
         int centerX = grade[0].length / 2;
         int centerY = grade.length / 2;

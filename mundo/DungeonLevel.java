@@ -20,15 +20,15 @@ public class DungeonLevel {
     }
 
     private void generateDungeon() {
-        // start in the center
+        // Start in the center
         currentRoomX = gridSize / 2;
         currentRoomY = gridSize / 2;
 
-        // create starting room
+        // Create starting room
         roomGrid[currentRoomY][currentRoomX] = new Room(Room.RoomType.START);
-        roomGrid[currentRoomY][currentRoomX].setDiscovered(true);
+        // DON'T set discovered here - let the game do it
 
-        // generate connected rooms using random walk
+        // Generate connected rooms using random walk
         int roomsToGenerate = 8 + rand.nextInt(5); // 8-12 rooms
         int roomsCreated = 1;
 
@@ -36,7 +36,7 @@ public class DungeonLevel {
         int y = currentRoomY;
 
         while (roomsCreated < roomsToGenerate) {
-            // pick a random direction
+            // Pick a random direction
             int dir = rand.nextInt(4);
             int newX = x;
             int newY = y;
@@ -48,17 +48,17 @@ public class DungeonLevel {
                 case 3 -> newX--; // West
             }
 
-            // check bounds
+            // Check bounds
             if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
-                // create room if doesn't exist
+                // Create room if doesn't exist
                 if (roomGrid[newY][newX] == null) {
                     Room.RoomType type = Room.RoomType.NORMAL;
 
-                    // last room is boss
+                    // Last room is boss
                     if (roomsCreated == roomsToGenerate - 1) {
                         type = Room.RoomType.BOSS;
                     }
-                    // random treasure rooms
+                    // Random treasure rooms
                     else if (rand.nextInt(100) < 20) {
                         type = Room.RoomType.TREASURE;
                     }
@@ -67,16 +67,16 @@ public class DungeonLevel {
                     roomsCreated++;
                 }
 
-                // connect rooms with doors
+                // Connect rooms with doors
                 connectRooms(x, y, newX, newY);
 
-                // move to new room
+                // Move to new room
                 x = newX;
                 y = newY;
             }
         }
 
-        // generate maps for all rooms AFTER doors are set
+        // Generate maps for all rooms AFTER doors are set
         for (int i = 0; i < gridSize; i++) {
             for (int j = 0; j < gridSize; j++) {
                 if (roomGrid[i][j] != null) {
@@ -136,28 +136,28 @@ public class DungeonLevel {
     public void moveNorth() {
         if (canMoveNorth()) {
             currentRoomY--;
-            getCurrentRoom().setDiscovered(true);
+            // DON'T set discovered here 
         }
     }
 
     public void moveSouth() {
         if (canMoveSouth()) {
             currentRoomY++;
-            getCurrentRoom().setDiscovered(true);
+            // DON'T set discovered here 
         }
     }
 
     public void moveEast() {
         if (canMoveEast()) {
             currentRoomX++;
-            getCurrentRoom().setDiscovered(true);
+            // DON'T set discovered here 
         }
     }
 
     public void moveWest() {
         if (canMoveWest()) {
             currentRoomX--;
-            getCurrentRoom().setDiscovered(true);
+            // DON'T set discovered here 
         }
     }
 

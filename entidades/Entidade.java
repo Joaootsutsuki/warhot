@@ -25,6 +25,7 @@ public abstract class Entidade {
         this.defesa = defesa;
         this.vivo = true;
     }
+    
 
     public void mover(int dx, int dy, Mapa mapa) {
         int nx = position.x() + dx;
@@ -50,6 +51,10 @@ public abstract class Entidade {
     // Getters
     public Position position() {
         return position;
+    }
+
+    public void setPosition(Position novaPosicao) {
+    this.position = novaPosicao;
     }
 
     public String[][] sprite() {

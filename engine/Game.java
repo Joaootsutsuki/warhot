@@ -56,39 +56,59 @@ public class Game {
     }
 
     private void spawnMonstersInRoom(Room room, int floorLevel) {
-        // Skip if start room or already has monsters
-        if (room.type() == Room.RoomType.START) {
+        if (room.type() == Room.RoomType.START || !room.monstros().isEmpty()) {
             return;
         }
 
-        if (!room.monstros().isEmpty()) {
-            return; // Already spawned
-        }
-
-        int numMonstros = switch (room.type()) {
-            case BOSS -> 1; // Boss room - 1 strong enemy
-            case TREASURE -> 2 + rand.nextInt(2); // 2-3 monsters
-            default -> 2 + rand.nextInt(3); // 2-4 monsters
+        int qtd = switch (room.type()) {
+            case BOSS -> 1;
+            case TREASURE -> 3 + rand.nextInt(2);
+            default -> 2 + rand.nextInt(3);
         };
 
-        String VERDE = "\u001B[32m";
-        String VERMELHO = "\u001B[31m";
+        Position playerPos = jogador.position(); // posição correta agora!
 
-        for (int i = 0; i < numMonstros; i++) {
-            Position pos = room.mapa().posicaoAleatoria();
+        for (int i = 0; i < qtd; i++) {
+            Position pos = null;
+            int tentativas = 0;
 
-            boolean isBoss = (room.type() == Room.RoomType.BOSS);
-            int hpMultiplier = isBoss ? 3 : 1;
-            int hp = (10 + floorLevel * 3) * hpMultiplier;
-            int atk = (2 + floorLevel) * hpMultiplier;
+            while (tentativas < 200 && pos == null) {
+                Position candidato = room.mapa().posicaoAleatoria();
+                if (room.mapa().podeAndar(candidato.x(), candidato.y())) {
+                    double distancia = Math.hypot(candidato.x() - playerPos.x(), candidato.y() - playerPos.y());
+                    if (distancia >= 7) {
+                        // verifica se não tem monstro já nessa posição
+                        boolean livre = true;
+                        for (Monstro m : room.monstros()) {
+                            if (m.position().x() == candidato.x() && m.position().y() == candidato.y()) {
+                                livre = false;
+                                break;
+                            }
+                        }
+                        if (livre) {
+                            pos = candidato;
+                        }
+                    }
+                }
+                tentativas++;
+            }
 
-            String name = isBoss ? "Boss Goblin" : "Goblin";
-            String color = isBoss ? VERMELHO : VERDE;
-            Monstro goblin = new Monstro(name, "■", color, pos, hp, atk, 1);
-            room.monstros().add(goblin);
+            // fallback seguro
+            if (pos == null) {
+                pos = room.mapa().posicaoAleatoria();
+            }
+
+            boolean boss = room.type() == Room.RoomType.BOSS;
+            Monstro m = new Monstro(
+                    boss ? "Boss Goblin King" : "Goblin",
+                    "G",
+                    boss ? "\u001B[31m" : "\u001B[32m",
+                    pos,
+                    (15 + floorLevel * 6) * (boss ? 8 : 1),
+                    (4 + floorLevel) * (boss ? 6 : 1),
+                    2);
+            room.monstros().add(m);
         }
-
-        log.adicionar("Spawned " + numMonstros + " enemies!");
     }
 
     private Position encontrarPosicaoValida(Mapa mapa, List<Position> posicoesUsadas, int distanciaMinima) {
@@ -303,6 +323,7 @@ public class Game {
                 System.exit(0);
             }
         }
+        checkForRoomChange();
 
         if (jogador.position().x() != oldX || jogador.position().y() != oldY) {
             verificarEscada();
@@ -310,6 +331,80 @@ public class Game {
             verificarColisao(currentRoom);
             currentRoom.checkCleared();
         }
+    }
+
+    private void checkForRoomChange() {
+        Room salaAtual = dungeon.getCurrentLevel().getCurrentRoom();
+        Mapa mapa = salaAtual.mapa();
+        Position p = jogador.position();
+
+        // Safety check
+        if (p.y() < 0 || p.x() < 0 || p.y() >= mapa.getHeight() || p.x() >= mapa.getWidth()) {
+            return;
+        }
+
+        Bloco tile = mapa.getTile(p.y(), p.x());
+
+        // Only continue if standing on a door
+        if (!tile.isDoor()) {
+            return;
+        }
+
+        DungeonLevel level = dungeon.getCurrentLevel();
+        Bloco doorEntered = tile;
+        boolean mudou = false;
+
+        if (tile == Bloco.DOOR_NORTH && level.canMoveNorth()) {
+            level.moveNorth();
+            mudou = true;
+        }
+        if (tile == Bloco.DOOR_SOUTH && level.canMoveSouth()) {
+            level.moveSouth();
+            mudou = true;
+        }
+        if (tile == Bloco.DOOR_EAST && level.canMoveEast()) {
+            level.moveEast();
+            mudou = true;
+        }
+        if (tile == Bloco.DOOR_WEST && level.canMoveWest()) {
+            level.moveWest();
+            mudou = true;
+        }
+
+        if (!mudou) {
+            return;
+        }
+
+        Room novaSala = level.getCurrentRoom();
+        Mapa novaMapa = novaSala.mapa();
+
+        // 1. FIRST spawn player near opposite door
+        Position novaPos = getSpawnPositionFromDoor(doorEntered, novaMapa);
+        jogador.setPosition(novaPos);
+
+        // 2. THEN check if room needs monsters spawned
+        if (!novaSala.discovered()) {
+            novaSala.setDiscovered(true);
+            spawnMonstersInRoom(novaSala, dungeon.getCurrentFloorNumber());
+            log.adicionar("You entered a new room!");
+        } else {
+            log.adicionar("You entered a cleared room.");
+        }
+    }
+
+    private Position getSpawnPositionFromDoor(Bloco doorEntered, Mapa mapa) {
+        int centerX = mapa.getWidth() / 2;
+        int centerY = mapa.getHeight() / 2;
+
+        // Spawn near the opposite door
+        return switch (doorEntered) {
+            case DOOR_NORTH -> findSafeSpawnNear(mapa, centerX, mapa.getHeight() - 5); // Came from north, spawn near
+                                                                                       // south
+            case DOOR_SOUTH -> findSafeSpawnNear(mapa, centerX, 5); // Came from south, spawn near north
+            case DOOR_EAST -> findSafeSpawnNear(mapa, 5, centerY); // Came from east, spawn near west
+            case DOOR_WEST -> findSafeSpawnNear(mapa, mapa.getWidth() - 5, centerY); // Came from west, spawn near east
+            default -> mapa.posicaoAleatoria();
+        };
     }
 
     private void verificarEscada() {
