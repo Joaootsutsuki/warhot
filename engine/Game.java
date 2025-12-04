@@ -66,25 +66,54 @@ public class Game {
             default -> 2 + rand.nextInt(3);
         };
 
-        Position playerPos = jogador.position(); // posição correta agora!
+        Mapa mapa = room.mapa();
+        Position playerPos = jogador.position();
+        List<Position> usedPositions = new ArrayList<>();
+        
+        // divide room into zones to spread monsters
+        int zoneWidth = mapa.getWidth() / 3;
+        int zoneHeight = mapa.getHeight() / 3;
 
         for (int i = 0; i < qtd; i++) {
             Position pos = null;
             int tentativas = 0;
+            int maxTentativas = 500;
+            
+            // assign each monster to a different zone
+            int zoneX = i % 3;
+            int zoneY = (i / 3) % 3;
+            
+            int minX = zoneX * zoneWidth + 2;
+            int maxX = Math.min((zoneX + 1) * zoneWidth - 2, mapa.getWidth() - 3);
+            int minY = zoneY * zoneHeight + 2;
+            int maxY = Math.min((zoneY + 1) * zoneHeight - 2, mapa.getHeight() - 3);
 
-            while (tentativas < 200 && pos == null) {
-                Position candidato = room.mapa().posicaoAleatoria();
-                if (room.mapa().podeAndar(candidato.x(), candidato.y())) {
-                    double distancia = Math.hypot(candidato.x() - playerPos.x(), candidato.y() - playerPos.y());
-                    if (distancia >= 7) {
-                        // verifica se não tem monstro já nessa posição
+            while (tentativas < maxTentativas && pos == null) {
+                int randX = minX + rand.nextInt(Math.max(1, maxX - minX));
+                int randY = minY + rand.nextInt(Math.max(1, maxY - minY));
+                
+                Position candidato = new Position(randX, randY);
+                
+                if (mapa.podeAndar(candidato.x(), candidato.y())) {
+                    double distanciaPlayer = Math.hypot(
+                        candidato.x() - playerPos.x(), 
+                        candidato.y() - playerPos.y()
+                    );
+                    
+                    if (distanciaPlayer >= 7) {
+                        // check distance from other spawned monsters
                         boolean livre = true;
-                        for (Monstro m : room.monstros()) {
-                            if (m.position().x() == candidato.x() && m.position().y() == candidato.y()) {
+                        for (Position usada : usedPositions) {
+                            double distToOther = Math.hypot(
+                                candidato.x() - usada.x(), 
+                                candidato.y() - usada.y()
+                            );
+                            if (distToOther < 6) {
                                 livre = false;
                                 break;
                             }
                         }
+                        
                         if (livre) {
                             pos = candidato;
                         }
@@ -93,10 +122,40 @@ public class Game {
                 tentativas++;
             }
 
-            // fallback seguro
+            // fallback
             if (pos == null) {
-                pos = room.mapa().posicaoAleatoria();
+                tentativas = 0;
+                while (tentativas < 200 && pos == null) {
+                    int randX = minX + rand.nextInt(Math.max(1, maxX - minX));
+                    int randY = minY + rand.nextInt(Math.max(1, maxY - minY));
+                    
+                    Position candidato = new Position(randX, randY);
+                    if (mapa.podeAndar(candidato.x(), candidato.y())) {
+                        boolean livre = true;
+                        for (Position usada : usedPositions) {
+                            double distToOther = Math.hypot(
+                                candidato.x() - usada.x(), 
+                                candidato.y() - usada.y()
+                            );
+                            if (distToOther < 3) {
+                                livre = false;
+                                break;
+                            }
+                        }
+                        if (livre) {
+                            pos = candidato;
+                        }
+                    }
+                    tentativas++;
+                }
             }
+
+            // Last resort
+            if (pos == null) {
+                pos = mapa.posicaoAleatoria();
+            }
+
+            usedPositions.add(pos);
 
             boolean boss = room.type() == Room.RoomType.BOSS;
             Monstro m = new Monstro(
