@@ -92,8 +92,10 @@ public class Render {
         for (Entity e : enemies) {
             if (e.alive()) {
                 hasEnemy = true;
-                String enemyHpBar = generateBar(e.currentHp(), e.maxHp(), 10, RED);
-                sb.append(String.format("%s [%s %d/%d]\n", e.name(), enemyHpBar, e.currentHp(), e.maxHp()));
+                String enemyHpBar = generateBar(e.currentHp(), e.maxHp(), 12, RED);
+
+                sb.append(String.format(" %s\n", e.name()));
+                sb.append(String.format("   HP: %s %d/%d\n\n", enemyHpBar, e.currentHp(), e.maxHp()));
             }
         }
 

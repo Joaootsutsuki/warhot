@@ -28,9 +28,7 @@ public class Chest {
 
         String YELLOW = "\u001B[33m";
         String RESET = "\u001B[0m";
-        this.sprite = new String[][] {
-                { YELLOW + "▤" + RESET},
-        };
+        this.sprite = new String[][] { { YELLOW + "▤" + RESET} };
     }
 
     public Position position() {

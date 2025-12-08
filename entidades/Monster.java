@@ -12,7 +12,7 @@ public class Monster extends Entity {
     private static String[][] generateSprite(String symbol, String color) {
         String RESET = "\u001B[0m";
 
-        return new String[][] {{ color + symbol + RESET, color + symbol + RESET }};
+        return new String[][] { { color + symbol + RESET } };
     }
 
 }
