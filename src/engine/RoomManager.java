@@ -16,11 +16,7 @@ public class RoomManager {
         this.log = log;
     }
 
-    public void setupRoom(Room room) {
-        room.mapa().placeStairs(room.hasStairsUp(), room.hasStairsDown());
-    }
-
-    public void spawnMonstersInRoom(Room room, int floorLevel, Player player) {
+    public void spawnMonstersInRoom(Room room, Player player) {
         if (room.type() == Room.RoomType.START || !room.monstros().isEmpty()) {
             return;
         }
@@ -47,7 +43,7 @@ public class RoomManager {
             if (pos != null) {
                 usedPositions.add(pos);
                 boolean boss = room.type() == Room.RoomType.BOSS;
-                Monster m = createMonster(pos, floorLevel, boss);
+                Monster m = createMonster(pos, boss);
                 room.monstros().add(m);
             }
         }
@@ -130,16 +126,20 @@ public class RoomManager {
         return null;
     }
 
-    private Monster createMonster(Position pos, int floorLevel, boolean boss) {
-        return new Monster(
-                boss ? "Boss Goblin King" : "Goblin",
-                "G",
-                boss ? "\u001B[31m" : "\u001B[32m",
-                pos,
-                (15 + floorLevel * 6) * (boss ? 8 : 1),
-                (4 + floorLevel) * (boss ? 6 : 1),
-                2
-        );
+    private Monster createMonster(Position pos, boolean isBoss) {
+        String name = isBoss ? "Boss Goblin King" : "Goblin";
+        String symbol = "G";
+        String color = isBoss ? "\u001B[31m" : "\u001B[32m"; // vermelho = boss, verde = normal
+
+        int baseHp = 40;
+        int hp = isBoss ? baseHp * 4 : baseHp;
+
+        int baseDamage = 4;
+        int damage = isBoss ? baseDamage * 4 : baseDamage;
+
+        int defense = 2;
+
+        return new Monster(name, symbol, color, pos, hp, damage, defense);
     }
 
     public Position getSpawnPositionFromDoor(Tile doorEntered, Map map) {

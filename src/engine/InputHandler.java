@@ -84,7 +84,7 @@ public class InputHandler {
     }
 
     public void processMovement(char key) {
-        Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room currentRoom = dungeon.getCurrentRoom();
         Map map = currentRoom.mapa();
 
         int oldX = player.position().x();
@@ -139,11 +139,4 @@ public class InputHandler {
         return Math.abs(p1.x() - p2.x()) < 2 && Math.abs(p1.y() - p2.y()) < 2;
     }
 
-    public void openInventory() {
-        showingInventory = true;
-    }
-
-    public void closeInventory() {
-        showingInventory = false;
-    }
 }

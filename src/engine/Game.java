@@ -31,7 +31,7 @@ public class Game {
         dungeon = new Dungeon();
 
         // Create player
-        Room startRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room startRoom = dungeon.getCurrentRoom();
         player = new Player("Hero", startRoom.mapa().randomPosition());
 
         // Initialize managers
@@ -41,8 +41,6 @@ public class Game {
         inputHandler = new InputHandler(player, log, gameUI, dungeon);
         collisionDetector = new CollisionDetector(player, combatManager);
 
-        // Setup starting room
-        roomManager.setupRoom(startRoom);
     }
 
     private void setupShutdownHook() {
@@ -85,7 +83,7 @@ public class Game {
     }
 
     private void renderGameWorld() {
-        Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room currentRoom = dungeon.getCurrentRoom();
         Monster[] arrayMonsters = currentRoom.monstros().toArray(new Monster[0]);
         Render.render(
                 currentRoom.mapa(),
@@ -102,7 +100,7 @@ public class Game {
         } else if (inputHandler.isShowingChestLoot()) {
             inputHandler.processChestLoot(key);
         } else if (combatManager.isInCombat()) {
-            Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+            Room currentRoom = dungeon.getCurrentRoom();
             combatManager.processCombat(
                     key,
                     currentRoom,
@@ -114,7 +112,7 @@ public class Game {
     }
 
     private void handleMovement(char key) {
-        Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room currentRoom = dungeon.getCurrentRoom();
         int oldX = player.position().x();
         int oldY = player.position().y();
 
@@ -136,7 +134,7 @@ public class Game {
     }
 
     private void gameOver() {
-        gameUI.showGameOver(player, 0);
+        gameUI.showGameOver(player, dungeon);
 
         while (Input.getKey() != 'q');
         Input.cleanup();

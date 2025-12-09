@@ -11,9 +11,11 @@ public class Player extends Entity {
     private int xp;
     private Inventory inventory;
     private Stats stats;
+    private static final String RESET = "\u001B[0m";
+    private static final String LIGHT_BLUE = "\u001B[96m"; // ⬅ azul claro
 
     public Player(String name, Position position) {
-        super(name, new String[][] { { "@" } }, position, 35, 5, 2);
+        super(name, new String[][] { { LIGHT_BLUE + "@" + RESET } } , position, 35, 5, 2);
 
         this.stats = new Stats(10, 10, 10, 10, 10, 10);
 

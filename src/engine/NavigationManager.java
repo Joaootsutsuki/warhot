@@ -4,10 +4,10 @@ import entidades.Player;
 import mundo.*;
 
 public class NavigationManager {
-    private Player player;
-    private Dungeon dungeon;
-    private MessageLog log;
-    private RoomManager roomManager;
+    private final Player player;
+    private final Dungeon dungeon;
+    private final MessageLog log;
+    private final RoomManager roomManager;
 
     public NavigationManager(Player player, Dungeon dungeon, MessageLog log, RoomManager roomManager) {
         this.player = player;
@@ -16,8 +16,9 @@ public class NavigationManager {
         this.roomManager = roomManager;
     }
 
+
     public void checkForRoomChange() {
-        Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room currentRoom = dungeon.getLevel().getCurrentRoom();
         Map map = currentRoom.mapa();
         Position p = player.position();
 
@@ -31,7 +32,7 @@ public class NavigationManager {
             return;
         }
 
-        DungeonLevel level = dungeon.getCurrentLevel();
+        DungeonLevel level = dungeon.getLevel();
         Tile doorEntered = tile;
         boolean changed = false;
 
@@ -64,18 +65,22 @@ public class NavigationManager {
 
         if (!newRoom.discovered()) {
             newRoom.setDiscovered(true);
-            roomManager.spawnMonstersInRoom(newRoom, dungeon.getCurrentFloorNumber(), player);
-            log.add("You entered a new room!");
+            roomManager.spawnMonstersInRoom(newRoom, player);
+            log.add("Voce entrou em uma nova sala");
         } else {
-            log.add("You entered a cleared room.");
+            log.add("Voce entrou em uma sala vazia");
         }
     }
 
+    /**
+     * Verifica colisão do sprite 2x2 do player com portas
+     */
     public void checkRoomTransition() {
         Position pos = player.position();
-        Room currentRoom = dungeon.getCurrentLevel().getCurrentRoom();
+        Room currentRoom = dungeon.getLevel().getCurrentRoom();
         Map map = currentRoom.mapa();
 
+        // Verifica os 4 tiles do sprite 2x2
         for (int dy = 0; dy < 2; dy++) {
             for (int dx = 0; dx < 2; dx++) {
                 int checkX = pos.x() + dx;
@@ -91,7 +96,7 @@ public class NavigationManager {
     }
 
     private void transitionToRoom(Tile doorType) {
-        DungeonLevel currentLevel = dungeon.getCurrentLevel();
+        DungeonLevel currentLevel = dungeon.getLevel();
 
         switch (doorType) {
             case DOOR_NORTH -> currentLevel.moveNorth();
@@ -104,43 +109,11 @@ public class NavigationManager {
 
         if (!newRoom.discovered()) {
             newRoom.setDiscovered(true);
-            roomManager.spawnMonstersInRoom(newRoom, dungeon.getCurrentFloorNumber(), player);
+            roomManager.spawnMonstersInRoom(newRoom, player);
         }
 
         Map newMap = newRoom.mapa();
-        Position newPos;
-
-        switch (doorType) {
-            case DOOR_NORTH -> {
-                newPos = roomManager.findSafeSpawnNear(
-                        newMap,
-                        newMap.asStringArray()[0].length / 2,
-                        newMap.asStringArray().length - 8
-                );
-            }
-            case DOOR_SOUTH -> {
-                newPos = roomManager.findSafeSpawnNear(
-                        newMap,
-                        newMap.asStringArray()[0].length / 2,
-                        8
-                );
-            }
-            case DOOR_EAST -> {
-                newPos = roomManager.findSafeSpawnNear(
-                        newMap,
-                        8,
-                        newMap.asStringArray().length / 2
-                );
-            }
-            case DOOR_WEST -> {
-                newPos = roomManager.findSafeSpawnNear(
-                        newMap,
-                        newMap.asStringArray()[0].length - 8,
-                        newMap.asStringArray().length / 2
-                );
-            }
-            default -> newPos = newMap.randomPosition();
-        }
+        Position newPos = getSpawnPositionForDoor(doorType, newMap);
 
         player.move(
                 newPos.x() - player.position().x(),
@@ -149,5 +122,21 @@ public class NavigationManager {
         );
 
         log.add("Entered " + roomManager.getRoomDescription(newRoom));
+    }
+
+    /**
+     * Determina posição de spawn baseado na porta de entrada
+     */
+    private Position getSpawnPositionForDoor(Tile doorType, Map map) {
+        int width = map.getWidth();
+        int height = map.getHeight();
+
+        return switch (doorType) {
+            case DOOR_NORTH -> roomManager.findSafeSpawnNear(map, width / 2, height - 8);
+            case DOOR_SOUTH -> roomManager.findSafeSpawnNear(map, width / 2, 8);
+            case DOOR_EAST -> roomManager.findSafeSpawnNear(map, 8, height / 2);
+            case DOOR_WEST -> roomManager.findSafeSpawnNear(map, width - 8, height / 2);
+            default -> map.randomPosition();
+        };
     }
 }

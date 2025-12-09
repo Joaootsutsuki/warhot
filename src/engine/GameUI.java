@@ -77,13 +77,14 @@ public class GameUI {
 
     public void showMinimap(Dungeon dungeon) {
         Render.clearScreen();
-        System.out.println("╔══════════════════════════════════════════════════════╗");
-        System.out.printf ("║                 MINIMAPA - ANDAR %02d                ║\n", dungeon.getCurrentFloorNumber());
-        System.out.println("╚══════════════════════════════════════════════════════╝\n");
+        System.out.println("╔══════════════════════════════════════════════════════════════╗");
+        System.out.println("║                      MAPA DO DUNGEON                         ║");
+        System.out.println("╚══════════════════════════════════════════════════════════════╝");
+        System.out.println();
 
-        DungeonLevel level = dungeon.getCurrentLevel();
-        Room[][] grid = level.roomGrid();
-        int size = level.gridSize();
+        DungeonLevel level = dungeon.getLevel();
+        Room[][] grid = level.getRoomGrid();
+        int size = level.getGridSize();
 
         for (int y = 0; y < size; y++) {
             System.out.print("   ");
@@ -91,7 +92,7 @@ public class GameUI {
             for (int x = 0; x < size; x++) {
                 Room room = grid[y][x];
 
-                if (x == level.currentRoomX() && y == level.currentRoomY()) {
+                if (x == level.getCurrentRoomX() && y == level.getCurrentRoomY()) {
                     System.out.print(" [\u001B[32m@\u001B[0m]");
                 } else if (room == null) {
                     System.out.print(" [ ]");
@@ -110,39 +111,97 @@ public class GameUI {
             System.out.println();
         }
 
-        System.out.println("\n─────────────────────────── INFO ─────────────────────────────\n");
+        System.out.println();
+        System.out.println("─────────────────────────── INFO ─────────────────────────────");
+        System.out.println();
 
-        System.out.printf(" Andar atual: %d/%d\n", dungeon.getCurrentFloorNumber(), dungeon.getTotalFloorsGenerated());
+        int totalRooms = countTotalRooms(grid, size);
+        int discoveredRooms = countDiscoveredRooms(grid, size);
+        float explorationPercent = (discoveredRooms * 100.0f) / totalRooms;
 
-        System.out.println("\n──────────────────────── LEGENDA ─────────────────────────────");
+        System.out.printf(" Salas exploradas: %d/%d (%.1f%%)\n",
+                discoveredRooms, totalRooms, explorationPercent);
+
+        System.out.println();
+        System.out.println("──────────────────────── LEGENDA ─────────────────────────────");
         System.out.println(" [\u001B[32m@\u001B[0m] Você");
         System.out.println(" [S] Início");
         System.out.println(" [\u001B[31mB\u001B[0m] Chefe");
+        System.out.println(" [\u001B[33mT\u001B[0m] Tesouro");
         System.out.println(" [#] Inimigos");
         System.out.println(" [-] Sala Limpa");
-        System.out.println(" [#] Inimigos");
-        System.out.println(" [\u001B[33mT\u001B[0m] Tesouro");
         System.out.println(" [?] Não descoberto");
-        System.out.println(" [ ] Sem sala gerada");
-        System.out.println(" ↑ Escada Cima | ↓ Escada Baixo");
-        System.out.println("──────────────────────────────────────────────────────────────\n");
-
+        System.out.println(" [ ] Sem sala");
+        System.out.println("──────────────────────────────────────────────────────────────");
+        System.out.println();
         System.out.print(" Pressione qualquer tecla para fechar...");
     }
 
-
-    public void showGameOver(Player player, int currentFloor) {
+    public void showGameOver(Player player, Dungeon dungeon) {
         Render.clearScreen();
         System.out.println();
-        System.out.println("╔════════════════════════════════╗");
-        System.out.println("║         VOCE MORREU            ║");
-        System.out.println("╚════════════════════════════════╝");
+        System.out.println("╔════════════════════════════════════════════════════════════╗");
+        System.out.println("║                     VOCE MORREU                            ║");
+        System.out.println("╚════════════════════════════════════════════════════════════╝");
         System.out.println();
-        System.out.println("Andar alcançado: " + currentFloor);
-        System.out.println("XP total: " + player.xp());
+
+        DungeonLevel level = dungeon.getLevel();
+        int totalRooms = countTotalRooms(level.getRoomGrid(), level.getGridSize());
+        int discovered = countDiscoveredRooms(level.getRoomGrid(), level.getGridSize());
+
+        System.out.println(" ──────────────────── ESTATÍSTICAS ─────────────────────");
+        System.out.printf(" Salas exploradas: %d/%d\n", discovered, totalRooms);
+        System.out.printf(" XP total: %d\n", player.xp());
+        System.out.printf(" Nível alcançado: %d\n", player.level());
+
+        boolean bossDefeated = checkBossDefeated(level.getRoomGrid(), level.getGridSize());
+        if (bossDefeated) {
+            System.out.println(" Status: \u001B[32mBOSS DERROTADO!\u001B[0m 🏆");
+        } else {
+            System.out.println(" Status: Boss não derrotado");
+        }
+
+        System.out.println(" ───────────────────────────────────────────────────────");
         System.out.println();
-        System.out.println("Pressione Q para sair...");
+        System.out.println(" Pressione Q para sair...");
     }
+
+    private int countTotalRooms(Room[][] grid, int size) {
+        int count = 0;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                if (grid[y][x] != null) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private int countDiscoveredRooms(Room[][] grid, int size) {
+        int count = 0;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                if (grid[y][x] != null && grid[y][x].discovered()) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private boolean checkBossDefeated(Room[][] grid, int size) {
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                Room room = grid[y][x];
+                if (room != null && room.type() == Room.RoomType.BOSS) {
+                    return room.cleared();
+                }
+            }
+        }
+        return false;
+    }
+
 
     private String getRarityColor(String rarity) {
         return switch (rarity) {

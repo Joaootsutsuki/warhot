@@ -2,133 +2,146 @@ package mundo;
 
 import java.util.Random;
 
+
 public class DungeonLevel {
-    private Room[][] roomGrid;
-    private int gridSize;
+    private static final int GRID_SIZE = 5;
+    private static final int MIN_ROOMS = 8;
+    private static final int MAX_ROOMS = 12;
+
+    private final Room[][] roomGrid;
+    private final Random rand;
+
     private int currentRoomX;
     private int currentRoomY;
-    private Random rand;
-    private int floorNumber;
 
-    public DungeonLevel(int floorNumber) {
-        this.gridSize = 5;
-        this.roomGrid = new Room[gridSize][gridSize];
+    public DungeonLevel() {
+        this.roomGrid = new Room[GRID_SIZE][GRID_SIZE];
         this.rand = new Random();
-        this.floorNumber = floorNumber;
 
-        generateDungeon();
+        generateLevel();
     }
 
-    private void generateDungeon() {
-        // Start in the center
-        currentRoomX = gridSize / 2;
-        currentRoomY = gridSize / 2;
+    /**
+     * Gera o dungeon: salas conectadas e mapas
+     */
+    private void generateLevel() {
+        currentRoomX = GRID_SIZE / 2;
+        currentRoomY = GRID_SIZE / 2;
 
-        // Create starting room
         roomGrid[currentRoomY][currentRoomX] = new Room(Room.RoomType.START);
 
-        // Generate connected rooms using random walk
-        int roomsToGenerate = 8 + rand.nextInt(5);
+        generateConnectedRooms();
+
+        generateAllMaps();
+    }
+
+    /**
+     * Gera salas conectadas usando random walk
+     */
+    private void generateConnectedRooms() {
+        int roomsToGenerate = MIN_ROOMS + rand.nextInt(MAX_ROOMS - MIN_ROOMS + 1);
         int roomsCreated = 1;
 
         int x = currentRoomX;
         int y = currentRoomY;
 
         while (roomsCreated < roomsToGenerate) {
-            // Pick a random direction
-            int dir = rand.nextInt(4);
-            int newX = x;
-            int newY = y;
+            Direction dir = Direction.random(rand);
+            int newX = x + dir.dx;
+            int newY = y + dir.dy;
 
-            switch (dir) {
-                case 0 -> newY--;
-                case 1 -> newY++;
-                case 2 -> newX++;
-                case 3 -> newX--;
-            }
-
-            // Check bounds
-            if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
-                // Create room if doesn't exist
+            if (isValidPosition(newX, newY)) {
                 if (roomGrid[newY][newX] == null) {
-                    Room.RoomType type = Room.RoomType.NORMAL;
-
-                    // Last room is boss
-                    if (roomsCreated == roomsToGenerate - 1) {
-                        type = Room.RoomType.BOSS;
-                    }
-                    // Random treasure rooms
-                    else if (rand.nextInt(100) < 20) {
-                        type = Room.RoomType.TREASURE;
-                    }
-
+                    Room.RoomType type = determineRoomType(roomsCreated, roomsToGenerate);
                     roomGrid[newY][newX] = new Room(type);
                     roomsCreated++;
                 }
 
-                // Connect rooms with doors
                 connectRooms(x, y, newX, newY);
 
-                // Move to new room
                 x = newX;
                 y = newY;
             }
         }
-
-        // Generate maps for all rooms AFTER doors are set
-        for (int i = 0; i < gridSize; i++) {
-            for (int j = 0; j < gridSize; j++) {
-                if (roomGrid[i][j] != null) {
-                    roomGrid[i][j].generateMap();
-                }
-            }
-        }
     }
 
+    /**
+     * Determina o tipo de sala baseado na progressão
+     */
+    private Room.RoomType determineRoomType(int roomIndex, int totalRooms) {
+        // Última sala é sempre boss
+        if (roomIndex == totalRooms - 1) {
+            return Room.RoomType.BOSS;
+        }
+
+        // 20% de chance de sala de tesouro
+        if (rand.nextInt(100) < 20) {
+            return Room.RoomType.TREASURE;
+        }
+
+        return Room.RoomType.NORMAL;
+    }
+
+    /**
+     * Conecta duas salas adjacentes com portas bidirecionais
+     */
     private void connectRooms(int x1, int y1, int x2, int y2) {
         Room room1 = roomGrid[y1][x1];
         Room room2 = roomGrid[y2][x2];
 
-        if (room1 == null || room2 == null)
+        if (room1 == null || room2 == null) {
             return;
+        }
 
-        // Determine direction
-        if (y2 < y1) {
+        if (y2 < y1) { // Norte
             room1.setDoor("north", true);
             room2.setDoor("south", true);
-        } else if (y2 > y1) {
+        } else if (y2 > y1) { // Sul
             room1.setDoor("south", true);
             room2.setDoor("north", true);
-        } else if (x2 > x1) {
+        } else if (x2 > x1) { // Leste
             room1.setDoor("east", true);
             room2.setDoor("west", true);
-        } else if (x2 < x1) {
+        } else if (x2 < x1) { // Oeste
             room1.setDoor("west", true);
             room2.setDoor("east", true);
         }
     }
 
-    public Room getCurrentRoom() {
-        return roomGrid[currentRoomY][currentRoomX];
+    /**
+     * Gera os mapas para todas as salas
+     */
+    private void generateAllMaps() {
+        for (int y = 0; y < GRID_SIZE; y++) {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                if (roomGrid[y][x] != null) {
+                    roomGrid[y][x].generateMap();
+                }
+            }
+        }
     }
 
     public boolean canMoveNorth() {
-        return getCurrentRoom().hasNorthDoor() && currentRoomY > 0 &&
+        return getCurrentRoom().hasNorthDoor() &&
+                currentRoomY > 0 &&
                 roomGrid[currentRoomY - 1][currentRoomX] != null;
     }
 
     public boolean canMoveSouth() {
-        return getCurrentRoom().hasSouthDoor() && currentRoomY < gridSize - 1 &&
+        return getCurrentRoom().hasSouthDoor() &&
+                currentRoomY < GRID_SIZE - 1 &&
                 roomGrid[currentRoomY + 1][currentRoomX] != null;
     }
 
     public boolean canMoveEast() {
-        return getCurrentRoom().hasEastDoor() && currentRoomX < gridSize - 1 &&
+        return getCurrentRoom().hasEastDoor() &&
+                currentRoomX < GRID_SIZE - 1 &&
                 roomGrid[currentRoomY][currentRoomX + 1] != null;
     }
 
     public boolean canMoveWest() {
-        return getCurrentRoom().hasWestDoor() && currentRoomX > 0 &&
+        return getCurrentRoom().hasWestDoor() &&
+                currentRoomX > 0 &&
                 roomGrid[currentRoomY][currentRoomX - 1] != null;
     }
 
@@ -156,19 +169,49 @@ public class DungeonLevel {
         }
     }
 
-    public int currentRoomX() {
-        return currentRoomX;
+
+    private boolean isValidPosition(int x, int y) {
+        return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
     }
 
-    public int currentRoomY() {
-        return currentRoomY;
+
+    public Room getCurrentRoom() {
+        return roomGrid[currentRoomY][currentRoomX];
     }
 
-    public Room[][] roomGrid() {
+    public Room[][] getRoomGrid() {
         return roomGrid;
     }
 
-    public int gridSize() {
-        return gridSize;
+    public int getCurrentRoomX() {
+        return currentRoomX;
+    }
+
+    public int getCurrentRoomY() {
+        return currentRoomY;
+    }
+
+    public int getGridSize() {
+        return GRID_SIZE;
+    }
+
+
+    private enum Direction {
+        NORTH(0, -1),
+        SOUTH(0, 1),
+        EAST(1, 0),
+        WEST(-1, 0);
+
+        final int dx, dy;
+
+        Direction(int dx, int dy) {
+            this.dx = dx;
+            this.dy = dy;
+        }
+
+        static Direction random(Random rand) {
+            Direction[] values = values();
+            return values[rand.nextInt(values.length)];
+        }
     }
 }

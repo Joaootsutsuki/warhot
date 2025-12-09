@@ -1,39 +1,19 @@
 package mundo;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
-// stairs not working xdddd
-
 public class Dungeon {
-    private List<DungeonLevel> floors;
-    private int currentFloor;
-    private Random rand;
+    private final DungeonLevel level;
 
     public Dungeon() {
-        this.floors = new ArrayList<>();
-        this.currentFloor = 0;
-        this.rand = new Random();
+        this.level = new DungeonLevel();
 
-        
-        generateFloor(1);
+        level.getCurrentRoom().setDiscovered(true);
     }
 
-    private void generateFloor(int floorNumber) {
-        DungeonLevel newFloor = new DungeonLevel(floorNumber);
-        floors.add(newFloor);
+    public DungeonLevel getLevel() {
+        return level;
     }
 
-    public DungeonLevel getCurrentLevel() {
-        return floors.get(currentFloor);
-    }
-
-    public int getCurrentFloorNumber() {
-        return currentFloor + 1;
-    }
-
-    public int getTotalFloorsGenerated() {
-        return floors.size();
+    public Room getCurrentRoom() {
+        return level.getCurrentRoom();
     }
 }

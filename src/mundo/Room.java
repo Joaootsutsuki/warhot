@@ -6,31 +6,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Room {
+    private static final int DEFAULT_WIDTH = 60;
+    private static final int DEFAULT_HEIGHT = 30;
+
     private Map mapa;
-    private List<Monster> monstros;
-    private List<Chest> chests;
+    private final List<Monster> monstros;
+    private final List<Chest> chests;
+    private final RoomType type;
+
+    // Estado
     private boolean discovered;
     private boolean cleared;
 
-    // Doors in each direction
+    // Conectividade (portas)
     private boolean hasNorthDoor;
     private boolean hasSouthDoor;
     private boolean hasEastDoor;
     private boolean hasWestDoor;
-
-    // Stairs
-    private boolean hasStairsUp;
-    private boolean hasStairsDown;
-
-    // Room type
-    private RoomType type;
-
-    public enum RoomType {
-        NORMAL,
-        START,
-        BOSS,
-        TREASURE
-    }
 
     public Room(RoomType type) {
         this.type = type;
@@ -42,13 +34,27 @@ public class Room {
         this.hasSouthDoor = false;
         this.hasEastDoor = false;
         this.hasWestDoor = false;
-        this.hasStairsUp = false;
-        this.hasStairsDown = false;
     }
 
+    /**
+     * Gera o mapa da sala baseado nas portas configuradas
+     */
     public void generateMap() {
-        // Generate map with doors already placed
-        mapa = new Map(60, 30, hasNorthDoor, hasSouthDoor, hasEastDoor, hasWestDoor);
+        mapa = new Map(
+                DEFAULT_WIDTH,
+                DEFAULT_HEIGHT,
+                hasNorthDoor,
+                hasSouthDoor,
+                hasEastDoor,
+                hasWestDoor
+        );
+    }
+
+    /**
+     * Verifica se todos os monstros foram derrotados
+     */
+    public void checkCleared() {
+        cleared = monstros.stream().allMatch(m -> !m.alive());
     }
 
     public void setDoor(String direction, boolean value) {
@@ -60,80 +66,38 @@ public class Room {
         }
     }
 
-    // Getters
-    public Map mapa() {
-        return mapa;
-    }
+    public boolean hasNorthDoor() { return hasNorthDoor; }
+    public boolean hasSouthDoor() { return hasSouthDoor; }
+    public boolean hasEastDoor() { return hasEastDoor; }
+    public boolean hasWestDoor() { return hasWestDoor; }
 
-    public List<Monster> monstros() {
-        return monstros;
-    }
-
-    public List<Chest> chests() {
-        return chests;
-    }
-
-    public boolean discovered() {
-        return discovered;
-    }
-
-    public boolean cleared() {
-        return cleared;
-    }
-
-    public RoomType type() {
-        return type;
-    }
-
-    public boolean hasNorthDoor() {
-        return hasNorthDoor;
-    }
-
-    public boolean hasSouthDoor() {
-        return hasSouthDoor;
-    }
-
-    public boolean hasEastDoor() {
-        return hasEastDoor;
-    }
-
-    public boolean hasWestDoor() {
-        return hasWestDoor;
-    }
-
-    public boolean hasStairsUp() {
-        return hasStairsUp;
-    }
-
-    public boolean hasStairsDown() {
-        return hasStairsDown;
-    }
-
-    // Setters
     public void setDiscovered(boolean value) {
         this.discovered = value;
     }
 
-    public void setCleared(boolean value) {
-        this.cleared = value;
-    }
+    public boolean discovered() { return discovered; }
+    public boolean cleared() { return cleared; }
 
-    public void setStairsUp(boolean value) {
-        this.hasStairsUp = value;
-    }
+    public Map mapa() { return mapa; }
+    public List<Monster> monstros() { return monstros; }
+    public List<Chest> chests() { return chests; }
+    public RoomType type() { return type; }
 
-    public void setStairsDown(boolean value) {
-        this.hasStairsDown = value;
-    }
 
-    public void checkCleared() {
-        boolean allDead = true;
-        for (Monster m : monstros) {
-            if (m.alive()) {
-                allDead = false;
-                break;
-            }
+    /**
+     * Tipos de sala disponíveis
+     */
+    public enum RoomType {
+        NORMAL("Normal Room"),
+        START("Starting Room"),
+        BOSS("Boss Room"),
+        TREASURE("Treasure Room");
+
+        private final String displayName;
+
+        RoomType(String displayName) {
+            this.displayName = displayName;
         }
-        cleared = allDead;
+
     }
 }
