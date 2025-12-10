@@ -21,10 +21,6 @@ public class CombatManager {
         return inCombat;
     }
 
-    public Monster getCurrentEnemy() {
-        return currentEnemy;
-    }
-
     public void startCombat(Monster enemy) {
         this.inCombat = true;
         this.currentEnemy = enemy;
@@ -138,8 +134,4 @@ public class CombatManager {
         return false;
     }
 
-    public void endCombat() {
-        inCombat = false;
-        currentEnemy = null;
-    }
 }
